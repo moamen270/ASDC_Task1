@@ -5,6 +5,8 @@ using System.Globalization;
 using Task1.Data;
 using Task1.Entity;
 using Task1.Entity.DTO;
+using ExcelDataReader;
+using OfficeOpenXml;
 
 namespace Task1.Controllers
 {
@@ -17,63 +19,64 @@ namespace Task1.Controllers
             _context = context;
         }
 
-        // GET /records
-        [HttpGet("records")]
+        // GET /products
+        [HttpGet("products")]
         public IActionResult GetRecords()
         {
-            var records = _context.Records.AsNoTracking().ToList();
-            return Ok(records);
+            var products = _context.Products.AsNoTracking().ToList();
+            return Ok(products);
         }
 
-        // GET /record/{id}
-        [HttpGet("record/{id}")]
+        // GET /product/{id}
+        [HttpGet("product/{id}")]
         public IActionResult GetRecord(int id)
         {
-            var record = _context.Records.Find(id);
-            if (record == null) return NotFound();
-            return Ok(record);
+            var product = _context.Products.Find(id);
+            if (product == null) return NotFound();
+            return Ok(product);
         }
 
-        // POST /record
-        [HttpPost("record")]
-        public IActionResult CreateRecord(RecordDto recordDto)
+        // POST /product
+        [HttpPost("product")]
+        public IActionResult CreateRecord(ProductDto productDto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var record = new Record
+            var product = new Product
             {
-                Name = recordDto.RecordName,
-                Action = recordDto.RecordAction,
-                Responsibilities = recordDto.RecordResponsibilities,
-                DueDate = recordDto.RecordDueDate
+                ProductName = productDto.ProductName,
+                ProductDescription = productDto.ProductDescription,
+                LocationFind = productDto.LocationFind,
+                Price = productDto.Price,
+                Color = productDto.Color
             };
-            _context.Records.Add(record);
+            _context.Products.Add(product);
             _context.SaveChanges();
-            return Ok(record);
+            return Ok(product);
         }
 
-        // PUT /record/{id}
-        [HttpPut("record")]
-        public IActionResult UpdateRecord(Record record)
+        // PUT /product/{id}
+        [HttpPut("product")]
+        public IActionResult UpdateRecord(Product product)
         {
             if (ModelState.IsValid) return BadRequest(ModelState);
 
-            if (!_context.Records.Any(r => r.Id == record.Id)) return BadRequest();
+            if (!_context.Products.Any(r => r.ID == product.ID)) return BadRequest();
 
-            _context.Update(record);
+            _context.Update(product);
             _context.SaveChanges();
 
             return NoContent();
         }
 
-        // DELETE /record/{id}
-        [HttpDelete("record/{id}")]
+        // DELETE /product/{id}
+        [HttpDelete("product/{id}")]
         public IActionResult DeleteRecord(int id)
         {
-            var record = _context.Records.Find(id);
-            if (record == null) return NotFound();
+            var product = _context.Products.Find(id);
+            if (product == null) return NotFound();
 
-            _context.Records.Remove(record);
+            _context.Products.Remove(product);
             _context.SaveChanges();
 
             return NoContent();
@@ -85,18 +88,57 @@ namespace Task1.Controllers
             if (file == null || file.Length == 0)
                 return BadRequest();
 
-            if (!Path.GetExtension(file.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
-                return BadRequest("Only CSV files allowed");
+            var products = new List<Product>();
+            if (Path.GetExtension(file.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                using var reader = new StreamReader(file.OpenReadStream());
+                using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
 
-            using var reader = new StreamReader(file.OpenReadStream());
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+                products = csv.GetRecords<Product>().ToList();
+                products.ForEach(r => r.ID = 0);
+                _context.Products.AddRange(products);
+                await _context.SaveChangesAsync();
+                return Ok(products);
+            }
+            if (file.FileName.EndsWith(".xlsx"))
+            {
+                products = ReadExcelFile(file);
+                products.ForEach(r => r.ID = 0);
+                // Save the list of products to the database
+                _context.Products.AddRange(products);
+                _context.SaveChanges();
 
-            var records = csv.GetRecords<Record>().ToList();
-            records.ForEach(r => r.Id = 0);
-            _context.Records.AddRange(records);
-            await _context.SaveChangesAsync();
+                return Ok(products);
+            }
 
-            return Ok();
+            return BadRequest("Only .csv & .xlsx files allowed");
+        }
+
+        private List<Product> ReadExcelFile(IFormFile file)
+        {
+            List<Product> products = new List<Product>();
+
+            using (var package = new ExcelPackage(file.OpenReadStream()))
+            {
+                var worksheet = package.Workbook.Worksheets[0]; // Assuming the data is in the first sheet
+
+                for (int row = 2; row <= worksheet.Dimension.End.Row; row++) // Assuming the header is in the first row
+                {
+                    var product = new Product
+                    {
+                        ID = int.Parse(worksheet.Cells[row, 1].Value.ToString()),
+                        ProductName = worksheet.Cells[row, 2].Value.ToString(),
+                        ProductDescription = worksheet.Cells[row, 3].Value.ToString(),
+                        LocationFind = worksheet.Cells[row, 4].Value.ToString(),
+                        Price = decimal.Parse(worksheet.Cells[row, 5].Value.ToString()),
+                        Color = worksheet.Cells[row, 6].Value.ToString()
+                    };
+
+                    products.Add(product);
+                }
+            }
+
+            return products;
         }
     }
 }
