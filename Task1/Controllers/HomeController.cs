@@ -89,26 +89,58 @@ namespace Task1.Controllers
                 return BadRequest();
 
             var products = new List<Product>();
-            if (Path.GetExtension(file.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            try
             {
-                using var reader = new StreamReader(file.OpenReadStream());
-                using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+                if (Path.GetExtension(file.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+                {
+                    using (var reader = new StreamReader(file.OpenReadStream()))
+                    using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                    {
+                        // Assuming the order of columns in the CSV matches the order in the Product class
+                        csv.Read();
+                        csv.ReadHeader();
 
-                products = csv.GetRecords<Product>().ToList();
-                products.ForEach(r => r.ID = 0);
-                _context.Products.AddRange(products);
-                await _context.SaveChangesAsync();
-                return Ok(products);
+                        while (csv.Read())
+                        {
+                            var product = new Product
+                            {
+                                ID = int.Parse(csv.GetField(0)),
+                                ProductName = csv.GetField(1),
+                                ProductDescription = csv.GetField(2),
+                                LocationFind = csv.GetField(3),
+                                Price = decimal.Parse(csv.GetField(4)),
+                                Color = csv.GetField(5)
+                            };
+
+                            products.Add(product);
+                        }
+                    }
+                    products.ForEach(r => r.ID = 0);
+                    _context.Products.AddRange(products);
+                    await _context.SaveChangesAsync();
+                    return Ok(products);
+                }
             }
-            if (file.FileName.EndsWith(".xlsx"))
+            catch (Exception ex)
             {
-                products = ReadExcelFile(file);
-                products.ForEach(r => r.ID = 0);
-                // Save the list of products to the database
-                _context.Products.AddRange(products);
-                _context.SaveChanges();
+                return BadRequest(ex.Message);
+            }
+            try
+            {
+                if (file.FileName.EndsWith(".xlsx"))
+                {
+                    products = ReadExcelFile(file);
+                    products.ForEach(r => r.ID = 0);
+                    // Save the list of products to the database
+                    _context.Products.AddRange(products);
+                    _context.SaveChanges();
 
-                return Ok(products);
+                    return Ok(products);
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
 
             return BadRequest("Only .csv & .xlsx files allowed");
