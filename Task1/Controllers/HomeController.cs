@@ -44,9 +44,9 @@ namespace Task1.Controllers
 
             var product = new Product
             {
-                ProductName = productDto.ProductName,
-                ProductDescription = productDto.ProductDescription,
-                LocationFind = productDto.LocationFind,
+                Name = productDto.Name,
+                Description = productDto.Name,
+                Location = productDto.Location,
                 Price = productDto.Price,
                 Color = productDto.Color
             };
@@ -105,9 +105,9 @@ namespace Task1.Controllers
                             var product = new Product
                             {
                                 ID = int.Parse(csv.GetField(0)),
-                                ProductName = csv.GetField(1),
-                                ProductDescription = csv.GetField(2),
-                                LocationFind = csv.GetField(3),
+                                Name = csv.GetField(1),
+                                Description = csv.GetField(2),
+                                Location = csv.GetField(3),
                                 Price = decimal.Parse(csv.GetField(4)),
                                 Color = csv.GetField(5)
                             };
@@ -159,9 +159,9 @@ namespace Task1.Controllers
                     var product = new Product
                     {
                         ID = int.Parse(worksheet.Cells[row, 1].Value.ToString()),
-                        ProductName = worksheet.Cells[row, 2].Value.ToString(),
-                        ProductDescription = worksheet.Cells[row, 3].Value.ToString(),
-                        LocationFind = worksheet.Cells[row, 4].Value.ToString(),
+                        Name = worksheet.Cells[row, 2].Value.ToString(),
+                        Description = worksheet.Cells[row, 3].Value.ToString(),
+                        Location = worksheet.Cells[row, 4].Value.ToString(),
                         Price = decimal.Parse(worksheet.Cells[row, 5].Value.ToString()),
                         Color = worksheet.Cells[row, 6].Value.ToString()
                     };
