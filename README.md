@@ -1,2 +1,2 @@
-# Task1: Excel Sheet to Database CSV & XLSX
-## Using CSVHelper & OfficeOpenXml Libraries
+# Task1: Excel Sheet CSV & XLSX to Database SQL Server
+## Using CSVHelper & OfficeOpenXml & EF core Libraries
