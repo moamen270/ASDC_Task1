@@ -59,14 +59,14 @@ namespace Task1.Controllers
         [HttpPut("product")]
         public IActionResult UpdateRecord(Product product)
         {
-            if (ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             if (!_context.Products.Any(r => r.ID == product.ID)) return BadRequest();
 
             _context.Update(product);
             _context.SaveChanges();
 
-            return NoContent();
+            return Ok(product);
         }
 
         // DELETE /product/{id}
