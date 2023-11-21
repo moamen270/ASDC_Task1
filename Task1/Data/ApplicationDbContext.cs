@@ -9,6 +9,6 @@ namespace Task1.Data
         {
         }
 
-        public DbSet<Record> Records { get; set; }
+        public DbSet<Product> Products { get; set; }
     }
 }
